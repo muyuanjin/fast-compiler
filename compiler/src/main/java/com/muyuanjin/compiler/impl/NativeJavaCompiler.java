@@ -4,6 +4,7 @@ import com.muyuanjin.compiler.CompilationProblem;
 import com.muyuanjin.compiler.CompilationResult;
 import com.muyuanjin.compiler.CompilationResult.Clazz;
 import com.muyuanjin.compiler.JavaCompilerSettings;
+import com.muyuanjin.compiler.util.JModules;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
@@ -18,6 +19,9 @@ import java.util.Map;
 
 @Getter
 public final class NativeJavaCompiler extends AbstractJavaCompiler {
+    static {JModules.makeSureExported();}
+
+    public static final boolean MODIFY_BY_AGENT = JavacTaskPool.MODIFY_BY_AGENT;
     private static final JavacTaskPool TASK_POOL = new JavacTaskPool();
     private final JavacTaskPool taskPool;
 

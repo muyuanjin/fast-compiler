@@ -25,6 +25,8 @@
 package com.muyuanjin.compiler.impl;
 
 
+import com.muyuanjin.compiler.util.JFields;
+import com.muyuanjin.compiler.util.JMethods;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.Tree;
@@ -53,8 +55,7 @@ import javax.tools.*;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Writer;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.List;
@@ -94,7 +95,7 @@ import java.util.stream.StreamSupport;
  * Modifications made by muyuanjin on 2024/5/5.
  */
 public class JavacTaskPool {
-    public static final boolean MODIFY_BY_AGENT;
+    static final boolean MODIFY_BY_AGENT;
 
     static {
         boolean modify;
@@ -110,22 +111,10 @@ public class JavacTaskPool {
 
     private static final JavacTool systemProvider = JavacTool.create();
     private static final Queue<ReusableContext> EMPTY_QUEUE = new ArrayDeque<>(0);
-    private static final Method CLEANUP;
+    private static final MethodHandle CLEANUP = JMethods.getMethodHandle(JavacTaskImpl.class, "cleanup");
 
     static {
-        try {
-            CLEANUP = JavacTaskImpl.class.getDeclaredMethod("cleanup");
-            CLEANUP.setAccessible(true);
-        } catch (NoSuchMethodException e) {
-            throw new AssertionError(e);
-        }
-        try {
-            Field maxLevel = Source.Feature.MODULES.getDeclaringClass().getDeclaredField("maxLevel");
-            maxLevel.setAccessible(true);
-            CompileUtil.removeFinal(maxLevel);
-            maxLevel.set(Source.Feature.MODULES, Source.JDK1_2);
-        } catch (Exception ignored) {
-        }
+        JFields.setValue(Source.Feature.MODULES, "maxLevel", Source.JDK1_2);
     }
 
     private final long maxAge;
@@ -293,7 +282,7 @@ public class JavacTaskPool {
             statPolluted++;
             memoryFileManager.doClose();// close the file manager
         } else {
-            CLEANUP.invoke(task);
+            CLEANUP.invokeExact(task);
             long currentTime = System.currentTimeMillis();
             if (ctx.timeStamp == 0) {
                 ctx.timeStamp = currentTime;

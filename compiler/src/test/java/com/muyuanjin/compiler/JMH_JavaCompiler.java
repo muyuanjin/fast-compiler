@@ -1,7 +1,7 @@
 package com.muyuanjin.compiler;
 
 import com.muyuanjin.compiler.impl.EclipseJavaCompiler;
-import com.muyuanjin.compiler.impl.JavacTaskPool;
+import com.muyuanjin.compiler.impl.NativeJavaCompiler;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.ICompilerFactory;
 import org.codehaus.commons.compiler.ISimpleCompiler;
@@ -21,21 +21,6 @@ public class JMH_JavaCompiler {
         Path agentPath = basedir.resolve("compiler-agent\\target\\compiler-agent-1.0-SNAPSHOT-jar-with-dependencies.jar");
 
         Options opt = new OptionsBuilder()
-                .jvmArgsAppend(("""
-                        -Dfile.encoding=UTF-8
-                        -Dsun.jnu.encoding=UTF-8
-                        --add-opens=java.base/java.lang=ALL-UNNAMED
-                        --add-opens=java.base/java.lang.reflect=ALL-UNNAMED
-                        --add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
-                        --add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED
-                        --add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED
-                        --add-opens=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED
-                        --add-opens=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED
-                        --add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
-                        --add-opens=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED
-                        --add-opens=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED
-                        --add-opens=jdk.compiler/com.sun.tools.javac.platform=ALL-UNNAMED
-                        """).lines().toArray(String[]::new))
                 .include(JMH_JavaCompiler.class.getSimpleName())
                 .mode(Mode.Throughput)
                 .forks(1)
@@ -58,7 +43,7 @@ public class JMH_JavaCompiler {
 
     @Setup
     public void setup() {
-        System.out.print(JavacTaskPool.MODIFY_BY_AGENT);
+        System.out.print(NativeJavaCompiler.MODIFY_BY_AGENT);
     }
 
     @Benchmark

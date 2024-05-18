@@ -1,5 +1,8 @@
 package com.muyuanjin.compiler.impl;
 
+import com.muyuanjin.compiler.util.JFields;
+import com.muyuanjin.compiler.util.JModules;
+import com.muyuanjin.compiler.util.JUnsafe;
 import com.sun.tools.javac.code.Scope;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symtab;
@@ -13,14 +16,14 @@ import lombok.experimental.UtilityClass;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
 @UtilityClass
 public class CompileUtil {
+    static {JModules.makeSureExported();}
+
     /**
      * org/my/Class.xxx -> org.my.Class
      */
@@ -99,83 +102,14 @@ public class CompileUtil {
         return os.toUpperCase().contains("MAC OS X");
     }
 
-    private static final Field MODIFIERS_FIELD;
-
-    static {
-        Field field = null;
-        try {
-            Method getDeclaredFields0 = Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
-            getDeclaredFields0.setAccessible(true);
-            Field[] fields = (Field[]) getDeclaredFields0.invoke(Field.class, false);
-            for (Field f1 : fields) {
-                if (f1.getName().equals("modifiers")) {
-                    f1.setAccessible(true);
-                    field = f1;
-                    break;
-                }
-            }
-        } catch (Throwable ignored) {
-        }
-        MODIFIERS_FIELD = field;
-    }
-
-    @SneakyThrows
-    public static void removeFinal(Field field) {
-        if (MODIFIERS_FIELD == null) {
-            throw new UnsupportedOperationException("Can't remove final modifier,please add " +
-                                                    "--add-opens=java.base/java.lang=ALL-UNNAMED " +
-                                                    "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED " +
-                                                    "to your jvm options");
-        }
-        MODIFIERS_FIELD.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-    }
-
-    private static final Field LISTENERS;
-    private static final Field LIST_LISTENERS;
-    private static final Field CLASSES;
-    private static final Field SUB_SCOPES;
-    private static final Field MEMBERS_CACHE;
-    private static final Field NIL_SCOPE;
-
-    static {
-        try {
-            LISTENERS = Scope.class.getDeclaredField("listeners");
-            LISTENERS.setAccessible(true);
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-
-        try {
-            LIST_LISTENERS = Scope.ScopeListenerList.class.getDeclaredField("listeners");
-            LIST_LISTENERS.setAccessible(true);
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-
-        try {
-            CLASSES = Symtab.class.getDeclaredField("classes");
-            CLASSES.setAccessible(true);
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-
-        try {
-            SUB_SCOPES = Scope.CompoundScope.class.getDeclaredField("subScopes");
-            SUB_SCOPES.setAccessible(true);
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-
-        try {
-            MEMBERS_CACHE = Types.class.getDeclaredField("membersCache");
-            MEMBERS_CACHE.setAccessible(true);
-            Class<?> aClass = Class.forName("com.sun.tools.javac.code.Types$MembersClosureCache");
-            NIL_SCOPE = aClass.getDeclaredField("nilScope");
-            NIL_SCOPE.setAccessible(true);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+    private static final Field CLASSES = JFields.getField(Symtab.class, "classes");
+    private static final Field LISTENERS = JFields.getField(Scope.class, "listeners");
+    private static final Field NIL_SCOPE = JFields.getField(JUnsafe.getClassByName(
+            "com.sun.tools.javac.code.Types$MembersClosureCache",
+            true, Types.class.getClassLoader(), Types.class), "nilScope");
+    private static final Field SUB_SCOPES = JFields.getField(Scope.CompoundScope.class, "subScopes");
+    private static final Field MEMBERS_CACHE = JFields.getField(Types.class, "membersCache");
+    private static final Field LIST_LISTENERS = JFields.getField(Scope.ScopeListenerList.class, "listeners");
 
     /**
      * JDK bug, {@link Types#newRound} 在清除缓存时，没有清除{@link Types.MembersClosureCache#nilScope}，会导致大量的内存泄露

@@ -2,6 +2,7 @@ package com.muyuanjin.compiler.impl;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.muyuanjin.compiler.util.JFields;
 import com.sun.tools.javac.file.BaseFileManager;
 import com.sun.tools.javac.file.JavacFileManager;
 import com.sun.tools.javac.util.Context;
@@ -27,7 +28,7 @@ import static javax.tools.StandardLocation.ANNOTATION_PROCESSOR_MODULE_PATH;
 @Getter
 @Setter
 public class MemoryFileManager extends ForwardingJavaFileManager<JavaFileManager> {
-    private static final Field CHARSET_FIELD;
+    private static final Field CHARSET_FIELD = JFields.getField(BaseFileManager.class, "charset");
 
     private static final Cache<JavaFileObjectKey, String> BINARY_NAME_CACHE = Caffeine.newBuilder().softValues().build();
 
@@ -35,14 +36,6 @@ public class MemoryFileManager extends ForwardingJavaFileManager<JavaFileManager
 
     private static final Cache<ClassLoader, Cache<String, List<JavaFileObject>>> EXTERNAL_JARS_CACHE = Caffeine.newBuilder().weakKeys().build();
 
-    static {
-        try {
-            CHARSET_FIELD = BaseFileManager.class.getDeclaredField("charset");
-            CHARSET_FIELD.setAccessible(true);
-        } catch (NoSuchFieldException e) {
-            throw new AssertionError(e);
-        }
-    }
 
     //TODO impl classpath jdk.jshell.TaskFactory.addToClasspath
     private final List<MemoryOutputJavaFileObject> outputs = new ArrayList<>();

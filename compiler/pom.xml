@@ -17,21 +17,6 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <argLine>
-            -Dfile.encoding=UTF-8
-            -Dsun.jnu.encoding=UTF-8
-            --add-opens=java.base/java.lang=ALL-UNNAMED
-            --add-opens=java.base/java.lang.reflect=ALL-UNNAMED
-            --add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
-            --add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED
-            --add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED
-            --add-opens=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED
-            --add-opens=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED
-            --add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
-            --add-opens=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED
-            --add-opens=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED
-            --add-opens=jdk.compiler/com.sun.tools.javac.platform=ALL-UNNAMED
-        </argLine>
     </properties>
 
     <dependencies>
@@ -128,48 +113,6 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-            <!--  使用该组件的项目需要添加 addOpens -->
-            <!--            <plugin>-->
-            <!--                <groupId>org.apache.maven.plugins</groupId>-->
-            <!--                <artifactId>maven-jar-plugin</artifactId>-->
-            <!--                <version>${maven-jar-plugin.version}</version>-->
-            <!--                <configuration>-->
-            <!--                    &lt;!&ndash; 将源代码排除在最终 jar 文件之外 &ndash;&gt;-->
-            <!--                    <excludes>-->
-            <!--                        <exclude>**/*.java</exclude>-->
-            <!--                    </excludes>-->
-            <!--                    <archive>-->
-            <!--                        <manifestEntries>-->
-            <!--                            &lt;!&ndash; 通过在MANIFEST.MF文件中加入Add-Opens参数达到不带参jar启动与带参启动相同的效果  &ndash;&gt;-->
-            <!--                            <Add-Opens>java.base/java.lang java.base/java.lang.invoke java.base/java.lang.reflect-->
-            <!--                                jdk.compiler/com.sun.tools.javac.api jdk.compiler/com.sun.tools.javac.code-->
-            <!--                                jdk.compiler/com.sun.tools.javac.comp jdk.compiler/com.sun.tools.javac.file-->
-            <!--                                jdk.compiler/com.sun.tools.javac.tree jdk.compiler/com.sun.tools.javac.util-->
-            <!--                                jdk.compiler/com.sun.tools.javac.main jdk.compiler/com.sun.tools.javac.model-->
-            <!--                                jdk.compiler/com.sun.tools.javac.platform-->
-            <!--                            </Add-Opens>-->
-            <!--                        </manifestEntries>-->
-            <!--                    </archive>-->
-            <!--                </configuration>-->
-            <!--            </plugin>-->
-            <!-- 如果你是在SpringBoot中使用的话 -->
-            <!--            <plugin>-->
-            <!--                <groupId>org.springframework.boot</groupId>-->
-            <!--                <artifactId>spring-boot-maven-plugin</artifactId>-->
-            <!--                <version>${spring-boot.version}</version>-->
-            <!--                <configuration>-->
-            <!--                    <jvmArguments>${argLine}</jvmArguments>-->
-            <!--                </configuration>-->
-            <!--            </plugin>-->
-            <!-- IDEA会自动读取 argLine参数来运行junit测试 -->
-            <!--            <plugin>-->
-            <!--                <groupId>org.apache.maven.plugins</groupId>-->
-            <!--                <artifactId>maven-surefire-plugin</artifactId>-->
-            <!--                <version>${maven-surefire-plugin.version}</version>-->
-            <!--                <configuration>-->
-            <!--                    <argLine>${argLine}</argLine>-->
-            <!--                </configuration>-->
-            <!--            </plugin>-->
         </plugins>
     </build>
 </project>
