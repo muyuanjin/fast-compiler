@@ -84,6 +84,8 @@ public class JUnsafe {
         }
     };
 
+    static final MethodHandles.Lookup IMPL_LOOKUP = LOOKUP.get(Object.class);
+
     /**
      * 获取拥有 指定类的最高权限 MethodHandles.Lookup 对象
      */
@@ -98,12 +100,11 @@ public class JUnsafe {
 
     static {
         try {
-            MethodHandles.Lookup lookUp = getLookUp(Class.class);
-            getDeclaredMethods0 = lookUp.findSpecial(Class.class, "getDeclaredMethods0",
+            getDeclaredMethods0 = IMPL_LOOKUP.findSpecial(Class.class, "getDeclaredMethods0",
                     MethodType.methodType(Method[].class, boolean.class), Class.class);
-            getDeclaredFields0 = lookUp.findSpecial(Class.class, "getDeclaredFields0",
+            getDeclaredFields0 = IMPL_LOOKUP.findSpecial(Class.class, "getDeclaredFields0",
                     MethodType.methodType(Field[].class, boolean.class), Class.class);
-            forName0 = lookUp.findStatic(Class.class, "forName0",
+            forName0 = IMPL_LOOKUP.findStatic(Class.class, "forName0",
                     MethodType.methodType(Class.class, String.class, boolean.class, ClassLoader.class, Class.class));
         } catch (Throwable e) {
             throw Throws.sneakyThrows(e);

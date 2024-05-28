@@ -4,7 +4,6 @@ import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -32,7 +31,6 @@ public class JMethods {
         return getMethodValue(targetClass, methodName, parameterTypes).method;
     }
 
-    @SneakyThrows
     public static List<Method> getMethods(Class<?> targetClass) {
         return Arrays.asList(DECLARED_METHODS.get(targetClass));
     }
@@ -201,7 +199,7 @@ public class JMethods {
         return METHODS.get(targetClass).computeIfAbsent(key, k -> {
             try {
                 Method method = findMethod(targetClass, methodName, args);
-                return new MethodValue(method, JUnsafe.getLookUp(targetClass).unreflect(method));
+                return new MethodValue(method, JUnsafe.IMPL_LOOKUP.unreflect(method));
             } catch (Throwable e) {
                 throw Throws.sneakyThrows(e);
             }
@@ -212,32 +210,32 @@ public class JMethods {
         MethodKey key = new MethodKey(methodName, getParameterTypeNames(parameterTypes));
         return METHODS.get(targetClass).computeIfAbsent(key, k -> {
             try {
-                Method method = JUnsafe.setAccessible((Method) searchMethods.invokeExact(DECLARED_METHODS.get(targetClass), methodName, parameterTypes));
+                Method method = (Method) searchMethods.invokeExact(DECLARED_METHODS.get(targetClass), methodName, parameterTypes);
                 if (method == null) {
                     throw new NoSuchMethodException(methodName + " " + Arrays.toString(parameterTypes));
                 }
-                return new MethodValue(method, JUnsafe.getLookUp(targetClass).unreflect(method));
+                return new MethodValue(method, JUnsafe.IMPL_LOOKUP.unreflect(method));
             } catch (Throwable e) {
                 throw Throws.sneakyThrows(e);
             }
         });
     }
 
-    private static String[] getParameterNames(Object... args) {
+    private static List<String> getParameterNames(Object... args) {
         String[] names = new String[args.length];
         for (int i = 0; i < args.length; i++) {
             Object arg = args[i];
             names[i] = arg == null ? "null" : arg.getClass().getName();
         }
-        return names;
+        return Arrays.asList(names);
     }
 
-    private static String[] getParameterTypeNames(Class<?>[] parameterTypes) {
+    private static List<String> getParameterTypeNames(Class<?>[] parameterTypes) {
         String[] names = new String[parameterTypes.length];
         for (int i = 0; i < parameterTypes.length; i++) {
             names[i] = parameterTypes[i].getName();
         }
-        return names;
+        return Arrays.asList(names);
     }
 
     private static final Class<?>[] EMPTY_CLASS_ARRAY = new Class[0];
@@ -248,9 +246,8 @@ public class JMethods {
 
     static {
         try {
-            MethodHandles.Lookup lookUp = JUnsafe.getLookUp(Class.class);
-            copyMethods = lookUp.findStatic(Class.class, "copyMethods", MethodType.methodType(Method[].class, Method[].class));
-            searchMethods = lookUp.findStatic(Class.class, "searchMethods", MethodType.methodType(Method.class, Method[].class, String.class, Class[].class));
+            copyMethods = JUnsafe.IMPL_LOOKUP.findStatic(Class.class, "copyMethods", MethodType.methodType(Method[].class, Method[].class));
+            searchMethods = JUnsafe.IMPL_LOOKUP.findStatic(Class.class, "searchMethods", MethodType.methodType(Method.class, Method[].class, String.class, Class[].class));
         } catch (Throwable e) {
             throw Throws.sneakyThrows(e);
         }
@@ -276,7 +273,7 @@ public class JMethods {
         }
     };
 
-    private record MethodKey(String method, String[] parameterTypes) {}
+    private record MethodKey(String method, List<String> parameterTypes) {}
 
     private record MethodValue(Method method, MethodHandle methodHandle) {}
 }

@@ -1,11 +1,9 @@
 package com.muyuanjin.compiler.util;
 
-
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
@@ -77,10 +75,9 @@ public class JFields {
     private static FieldInfo searchFields(Field[] fields, String name) {
         if (fields.length != 0) {
             Class<?> declaringClass = fields[0].getDeclaringClass();
-            MethodHandles.Lookup lookUp = JUnsafe.getLookUp(declaringClass);
             for (Field field : fields) {
                 if (field.getName().equals(name)) {
-                    return new FieldInfo(field, lookUp.unreflectVarHandle(field), Modifier.isVolatile(field.getModifiers()));
+                    return new FieldInfo(field, JUnsafe.IMPL_LOOKUP.unreflectVarHandle(field), Modifier.isVolatile(field.getModifiers()));
                 }
             }
         }
@@ -98,8 +95,7 @@ public class JFields {
 
     static {
         try {
-            MethodHandles.Lookup lookUp = JUnsafe.getLookUp(Class.class);
-            copyFields = lookUp.findStatic(Class.class, "copyFields", MethodType.methodType(Field[].class, Field[].class));
+            copyFields = JUnsafe.IMPL_LOOKUP.findStatic(Class.class, "copyFields", MethodType.methodType(Field[].class, Field[].class));
         } catch (Throwable e) {
             throw Throws.sneakyThrows(e);
         }
@@ -110,8 +106,7 @@ public class JFields {
 
         static {
             try {
-                MethodHandles.Lookup lookUp = JUnsafe.getLookUp(Field.class);
-                trustedFinal = lookUp.findVarHandle(Field.class, "trustedFinal", boolean.class);
+                trustedFinal = JUnsafe.IMPL_LOOKUP.findVarHandle(Field.class, "trustedFinal", boolean.class);
             } catch (Throwable e) {
                 throw Throws.sneakyThrows(e);
             }
