@@ -4,6 +4,7 @@ import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
@@ -77,7 +78,7 @@ public class JFields {
             Class<?> declaringClass = fields[0].getDeclaringClass();
             for (Field field : fields) {
                 if (field.getName().equals(name)) {
-                    return new FieldInfo(field, JUnsafe.IMPL_LOOKUP.unreflectVarHandle(field), Modifier.isVolatile(field.getModifiers()));
+                    return FieldInfo.of(field);
                 }
             }
         }
@@ -102,16 +103,6 @@ public class JFields {
     }
 
     private static final ClassValue<Field[]> DECLARED_FIELDS = new ClassValue<>() {
-        private static final VarHandle trustedFinal;
-
-        static {
-            try {
-                trustedFinal = JUnsafe.IMPL_LOOKUP.findVarHandle(Field.class, "trustedFinal", boolean.class);
-            } catch (Throwable e) {
-                throw Throws.sneakyThrows(e);
-            }
-        }
-
         @Override
         @SneakyThrows
         @SuppressWarnings("ConfusingArgumentToVarargsMethod")
@@ -119,11 +110,37 @@ public class JFields {
             Field[] declaredFields = (Field[]) copyFields.invokeExact(JUnsafe.getDeclaredFields(type));
             for (Field declaredField : declaredFields) {
                 JUnsafe.setAccessible(declaredField);
-                trustedFinal.set(declaredField, false);
             }
             return declaredFields;
         }
     };
 
-    public record FieldInfo(Field field, VarHandle varHandle, boolean isVolatile) {}
+    public record FieldInfo(Field field, VarHandle varHandle, boolean isVolatile) {
+        private static final MethodHandle makeFieldHandle;
+        private static final MethodHandle newMemberName;
+        private static final MethodHandle getFieldType;
+
+        static {
+            try {
+                ClassLoader loader = FieldInfo.class.getClassLoader() == null ? ClassLoader.getSystemClassLoader() : FieldInfo.class.getClassLoader();
+                Class<Object> varHandlesClass = JUnsafe.getClassByName("java.lang.invoke.VarHandles", true, loader, MethodHandles.class);
+                Class<Object> memberNameClass = JUnsafe.getClassByName("java.lang.invoke.MemberName", true, loader, MethodHandles.class);
+                makeFieldHandle = JUnsafe.IMPL_LOOKUP.findStatic(varHandlesClass, "makeFieldHandle",
+                        MethodType.methodType(VarHandle.class, memberNameClass, Class.class, Class.class, boolean.class));
+                newMemberName = JUnsafe.IMPL_LOOKUP.unreflectConstructor(memberNameClass.getConstructor(Field.class, boolean.class));
+                getFieldType = JUnsafe.IMPL_LOOKUP.findVirtual(memberNameClass, "getFieldType", MethodType.methodType(Class.class));
+            } catch (Throwable e) {
+                throw Throws.sneakyThrows(e);
+            }
+        }
+
+        @SneakyThrows
+        public static FieldInfo of(Field field) {
+            Class<?> clazz = field.getDeclaringClass();
+            Object memberName = newMemberName.invoke(field, false);
+            // 绕过 trustedFinal 检查
+            VarHandle handle = (VarHandle) makeFieldHandle.invoke(memberName, clazz, getFieldType.invoke(memberName), true);
+            return new FieldInfo(field, handle, Modifier.isVolatile(field.getModifiers()));
+        }
+    }
 }
