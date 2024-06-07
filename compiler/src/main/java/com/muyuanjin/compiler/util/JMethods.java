@@ -7,10 +7,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -32,7 +29,7 @@ public class JMethods {
     }
 
     public static List<Method> getMethods(Class<?> targetClass) {
-        return Arrays.asList(DECLARED_METHODS.get(targetClass));
+        return Collections.unmodifiableList(Arrays.asList(DECLARED_METHODS.get(targetClass)));
     }
 
     /**

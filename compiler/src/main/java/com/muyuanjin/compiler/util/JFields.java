@@ -10,6 +10,7 @@ import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,7 +34,7 @@ public class JFields {
     }
 
     public static List<Field> getFields(Class<?> clazz) {
-        return Arrays.asList(DECLARED_FIELDS.get(clazz));
+        return Collections.unmodifiableList(Arrays.asList(DECLARED_FIELDS.get(clazz)));
     }
 
     @SneakyThrows
