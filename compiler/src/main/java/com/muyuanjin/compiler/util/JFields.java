@@ -127,9 +127,12 @@ public class JFields {
                 Class<Object> varHandlesClass = JUnsafe.getClassByName("java.lang.invoke.VarHandles", true, loader, MethodHandles.class);
                 Class<Object> memberNameClass = JUnsafe.getClassByName("java.lang.invoke.MemberName", true, loader, MethodHandles.class);
                 makeFieldHandle = JUnsafe.IMPL_LOOKUP.findStatic(varHandlesClass, "makeFieldHandle",
-                        MethodType.methodType(VarHandle.class, memberNameClass, Class.class, Class.class, boolean.class));
-                newMemberName = JUnsafe.IMPL_LOOKUP.unreflectConstructor(memberNameClass.getConstructor(Field.class, boolean.class));
-                getFieldType = JUnsafe.IMPL_LOOKUP.findVirtual(memberNameClass, "getFieldType", MethodType.methodType(Class.class));
+                                MethodType.methodType(VarHandle.class, memberNameClass, Class.class, Class.class, boolean.class))
+                        .asType(MethodType.methodType(VarHandle.class, Object.class, Class.class, Class.class, boolean.class));
+                newMemberName = JUnsafe.IMPL_LOOKUP.unreflectConstructor(memberNameClass.getConstructor(Field.class, boolean.class))
+                        .asType(MethodType.methodType(Object.class, Field.class, boolean.class));
+                getFieldType = JUnsafe.IMPL_LOOKUP.findVirtual(memberNameClass, "getFieldType", MethodType.methodType(Class.class))
+                        .asType(MethodType.methodType(Class.class, Object.class));
             } catch (Throwable e) {
                 throw Throws.sneakyThrows(e);
             }
@@ -138,9 +141,9 @@ public class JFields {
         @SneakyThrows
         public static FieldInfo of(Field field) {
             Class<?> clazz = field.getDeclaringClass();
-            Object memberName = newMemberName.invoke(field, false);
+            Object memberName = newMemberName.invokeExact(field, false);
             // 绕过 trustedFinal 检查
-            VarHandle handle = (VarHandle) makeFieldHandle.invoke(memberName, clazz, getFieldType.invoke(memberName), true);
+            VarHandle handle = (VarHandle) makeFieldHandle.invokeExact(memberName, clazz, (Class<?>) getFieldType.invokeExact(memberName), true);
             return new FieldInfo(field, handle, Modifier.isVolatile(field.getModifiers()));
         }
     }
