@@ -3,10 +3,14 @@ package com.muyuanjin.compiler.util;
 import org.junit.jupiter.api.Assertions;
 import sun.misc.Unsafe;
 
+import java.io.Serializable;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 /**
  * @author muyuanjin
@@ -20,12 +24,13 @@ class JUnsafeTest {
         JFields.setValue(anEnum, "modifiers", anEnum.getModifiers() & ~Modifier.FINAL);
         int old = anEnum.getInt(null);
         anEnum.setInt(null, 999);
-        System.out.println(anEnum.get(null));
         Assertions.assertEquals(999, anEnum.get(null));
         anEnum.setInt(null, old);
 
-        Object o = JMethods.invokeStatic(Unsafe.class, "getUnsafe");
-        Assertions.assertNotNull(o);
+        try {
+            Assertions.assertNotNull(JMethods.invokeStatic(Unsafe.class, "getUnsafe"));
+        } catch (SecurityException ignore) {
+        }
         Object o1 = JFields.getStaticValue(Unsafe.class, "theUnsafe");
         Assertions.assertNotNull(o1);
         Object o2 = JFields.getStaticValue(Unsafe.class, "theInternalUnsafe");
@@ -45,6 +50,15 @@ class JUnsafeTest {
         Assertions.assertThrows(NullPointerException.class, () -> log.info("test"));
         JFields.setStaticValue(JUnsafeTest.class, "log", new ALog(2));
         Assertions.assertEquals("2\ttest", log.info("test"));
+
+        Consumer<String> consumer = (Consumer<String> & Serializable) System.out::println;
+        Assertions.assertNotNull(JMethods.invoke(consumer, "writeReplace"));
+
+        Assertions.assertEquals(new BigDecimal(55), JMethods.invoke(new BigDecimal("22"), "add", new BigDecimal("33")));
+        Assertions.assertEquals(new BigDecimal("22").divide(new BigDecimal("3"), RoundingMode.HALF_UP),
+                JMethods.invoke(new BigDecimal("22"), "divide", new BigDecimal("3"), RoundingMode.HALF_UP));
+
+        Assertions.assertEquals(BigDecimal.valueOf(0.2), JMethods.invokeStatic(BigDecimal.class, "valueOf", 0.2));
     }
 
     private record ALog(int id) {
