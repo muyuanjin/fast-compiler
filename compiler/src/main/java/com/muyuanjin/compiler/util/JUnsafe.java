@@ -84,7 +84,7 @@ public class JUnsafe {
         }
     };
 
-    static final MethodHandles.Lookup IMPL_LOOKUP = LOOKUP.get(Object.class);
+    public static final MethodHandles.Lookup IMPL_LOOKUP = LOOKUP.get(Object.class);
 
     /**
      * 获取拥有 指定类的最高权限 MethodHandles.Lookup 对象
@@ -94,12 +94,15 @@ public class JUnsafe {
         return LOOKUP.get(lookupClass);
     }
 
+    private static final MethodHandle privateGetPublicMethods;
     private static final MethodHandle getDeclaredMethods0;
     private static final MethodHandle getDeclaredFields0;
     private static final MethodHandle forName0;
 
     static {
         try {
+            privateGetPublicMethods = IMPL_LOOKUP.findSpecial(Class.class, "privateGetPublicMethods",
+                    MethodType.methodType(Method[].class), Class.class);
             getDeclaredMethods0 = IMPL_LOOKUP.findSpecial(Class.class, "getDeclaredMethods0",
                     MethodType.methodType(Method[].class, boolean.class), Class.class);
             getDeclaredFields0 = IMPL_LOOKUP.findSpecial(Class.class, "getDeclaredFields0",
@@ -114,6 +117,11 @@ public class JUnsafe {
     @SneakyThrows
     public static Method[] getDeclaredMethods(Class<?> clazz) {
         return (Method[]) getDeclaredMethods0.invokeExact(clazz, false);
+    }
+
+    @SneakyThrows
+    static Method[] privateGetPublicMethods(Class<?> clazz) {
+        return (Method[]) privateGetPublicMethods.invokeExact(clazz);
     }
 
     @SneakyThrows

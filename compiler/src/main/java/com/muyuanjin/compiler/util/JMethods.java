@@ -2,6 +2,7 @@ package com.muyuanjin.compiler.util;
 
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
+import org.codehaus.commons.nullanalysis.NotNull;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
@@ -40,6 +41,66 @@ public class JMethods {
 
     public static List<Method> getMethods(Class<?> targetClass) {
         return Collections.unmodifiableList(Arrays.asList(DECLARED_METHODS.get(targetClass)));
+    }
+
+    public static List<Method> getPublicMethods(Class<?> targetClass) {
+        return Collections.unmodifiableList(Arrays.asList(PUBLIC_METHODS.get(targetClass)));
+    }
+
+    public static List<Method> getPublicMethods(Class<?> targetClass, boolean includingObject) {
+        Method[] methods = PUBLIC_METHODS.get(targetClass);
+        if (includingObject) {
+            return Collections.unmodifiableList(Arrays.asList(methods));
+        }
+        List<Method> result = new ArrayList<>(methods.length);
+        for (Method method : methods) {
+            if (searchMethods(OBJECT_METHODS, method.getName(), method.getParameterTypes()) == null) {
+                result.add(method);
+            }
+        }
+        return result;
+    }
+
+    public static boolean publicMethodsContainsAll(Class<?> targetClass, Collection<Method> methods) {
+        if (targetClass == null) {
+            return false;
+        }
+        return methodContainsAll(PUBLIC_METHODS.get(targetClass), methods);
+    }
+
+    public static boolean publicMethodsContainsAll(Class<?> targetClass, Method[] methods) {
+        if (targetClass == null) {
+            return false;
+        }
+        return methodContainsAll(PUBLIC_METHODS.get(targetClass), methods);
+    }
+
+    @SneakyThrows
+    public static boolean methodContainsAll(Method[] publicMethods, Collection<Method> methods) {
+        if (publicMethods == null) {
+            return false;
+        }
+        if (methods == null) {
+            return true;
+        }
+        for (Method method : methods) {
+            if ((Method) searchMethods.invokeExact(publicMethods, method.getName(), method.getParameterTypes()) == null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean methodContainsAll(Method[] publicMethods, Method[] methods) {
+        return methodContainsAll(publicMethods, Arrays.asList(methods));
+    }
+
+    public static boolean methodContainsAll(Collection<Method> publicMethods, Method[] methods) {
+        return methodContainsAll(publicMethods.toArray(new Method[0]), methods);
+    }
+
+    public static boolean methodContainsAll(Collection<Method> publicMethods, Collection<Method> methods) {
+        return methodContainsAll(publicMethods.toArray(new Method[0]), methods);
     }
 
     /**
@@ -311,8 +372,20 @@ public class JMethods {
         @Override
         @SneakyThrows
         @SuppressWarnings("ConfusingArgumentToVarargsMethod")
-        protected Method[] computeValue(Class<?> type) {
+        protected Method[] computeValue(@NotNull Class<?> type) {
             Method[] declaredMethods = (Method[]) copyMethods.invokeExact(JUnsafe.getDeclaredMethods(type));
+            for (Method declaredMethod : declaredMethods) {
+                JUnsafe.setAccessible(declaredMethod);
+            }
+            return declaredMethods;
+        }
+    };
+
+    private static final ClassValue<Method[]> PUBLIC_METHODS = new ClassValue<>() {
+        @Override
+        @SneakyThrows
+        protected Method[] computeValue(@NotNull Class<?> type) {
+            Method[] declaredMethods = (Method[]) copyMethods.invokeExact(JUnsafe.privateGetPublicMethods(type));
             for (Method declaredMethod : declaredMethods) {
                 JUnsafe.setAccessible(declaredMethod);
             }
@@ -326,6 +399,8 @@ public class JMethods {
             return new ConcurrentHashMap<>();
         }
     };
+
+    private static final Method[] OBJECT_METHODS = DECLARED_METHODS.get(Object.class);
 
     private record MethodKey(String method, List<String> parameterTypes) {}
 
